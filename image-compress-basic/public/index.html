@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nén ảnh cơ bản</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 640px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    p.subtitle { color: #666; margin-top: 0; margin-bottom: 24px; }
+
+    .drop-zone {
+      border: 2px dashed #bbb;
+      border-radius: 10px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone.dragover {
+      border-color: #4f46e5;
+      background: #f5f5ff;
+    }
+    .drop-zone p { margin: 0; color: #555; }
+    input[type="file"] { display: none; }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .controls label {
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    select, input[type="range"] { width: 100%; }
+
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+
+    .result {
+      margin-top: 28px;
+      display: none;
+    }
+    .compare {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .compare figure { flex: 1; margin: 0; text-align: center; }
+    .compare img {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .compare figcaption { font-size: 13px; color: #666; margin-top: 6px; }
+
+    .stats {
+      margin-top: 12px;
+      background: #f7f7f9;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    .error { color: #d33; margin-top: 12px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Nén ảnh cơ bản</h1>
+  <p class="subtitle">Chọn hoặc kéo-thả ảnh (JPEG, PNG, WebP — tối đa 10MB)</p>
+
+  <div class="drop-zone" id="dropZone">
+    <p>Kéo-thả ảnh vào đây, hoặc bấm để chọn file</p>
+    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+  </div>
+
+  <div class="controls">
+    <label style="flex: 1; min-width: 140px;">
+      Chất lượng (quality): <span id="qualityValue">70</span>
+      <input type="range" id="quality" min="1" max="100" value="70" />
+    </label>
+    <label style="flex: 1; min-width: 140px;">
+      Định dạng đầu ra
+      <select id="format">
+        <option value="jpeg">JPEG</option>
+        <option value="webp">WebP</option>
+        <option value="png">PNG</option>
+      </select>
+    </label>
+  </div>
+
+  <button id="compressBtn" disabled>Nén ảnh</button>
+  <div class="error" id="errorBox"></div>
+
+  <div class="result" id="result">
+    <div class="compare">
+      <figure>
+        <img id="originalPreview" alt="Ảnh gốc" />
+        <figcaption id="originalCaption">Ảnh gốc</figcaption>
+      </figure>
+      <figure>
+        <img id="compressedPreview" alt="Ảnh đã nén" />
+        <figcaption id="compressedCaption">Ảnh đã nén</figcaption>
+      </figure>
+    </div>
+    <div class="stats" id="stats"></div>
+    <a id="downloadLink" download>
+      <button style="margin-top: 12px;">Tải ảnh đã nén</button>
+    </a>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const compressBtn = document.getElementById("compressBtn");
+    const qualityInput = document.getElementById("quality");
+    const qualityValue = document.getElementById("qualityValue");
+    const formatSelect = document.getElementById("format");
+    const errorBox = document.getElementById("errorBox");
+    const resultBox = document.getElementById("result");
+
+    let selectedFile = null;
+
+    qualityInput.addEventListener("input", () => {
+      qualityValue.textContent = qualityInput.value;
+    });
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      errorBox.textContent = "";
+      selectedFile = file;
+      compressBtn.disabled = false;
+      dropZone.querySelector("p").textContent = `Đã chọn: ${file.name}`;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    compressBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+      errorBox.textContent = "";
+      compressBtn.disabled = true;
+      compressBtn.textContent = "Đang xử lý...";
+
+      const formData = new FormData();
+      formData.append("image", selectedFile);
+      formData.append("quality", qualityInput.value);
+      formData.append("format", formatSelect.value);
+
+      try {
+        const res = await fetch("/api/compress", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Nén ảnh thất bại.");
+        }
+
+        // Hiển thị kết quả
+        document.getElementById("originalPreview").src = URL.createObjectURL(selectedFile);
+        document.getElementById("originalCaption").textContent = `Ảnh gốc — ${formatBytes(data.originalSize)}`;
+        document.getElementById("compressedPreview").src = data.url;
+        document.getElementById("compressedCaption").textContent = `Đã nén — ${formatBytes(data.compressedSize)}`;
+        document.getElementById("stats").textContent =
+          `Giảm ${data.reductionPercent}% dung lượng (${formatBytes(data.originalSize)} → ${formatBytes(data.compressedSize)})`;
+        document.getElementById("downloadLink").href = data.url;
+
+        resultBox.style.display = "block";
+      } catch (err) {
+        errorBox.textContent = err.message;
+      } finally {
+        compressBtn.disabled = false;
+        compressBtn.textContent = "Nén ảnh";
+      }
+    });
+  </script>
+</body>
+</html>
