@@ -3,217 +3,752 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nén ảnh cơ bản</title>
+  <title>Nén File — Ảnh · PDF · CSV</title>
+  <meta name="description" content="Công cụ nén ảnh, PDF và CSV trực tuyến miễn phí. Hỗ trợ JPEG, PNG, WebP, PDF, CSV." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 640px;
-      margin: 40px auto;
-      padding: 0 20px;
-      color: #1a1a1a;
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #22262f;
+      --border: #2a2e3a;
+      --text: #e4e6eb;
+      --text-muted: #8b8fa3;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --success: #22c55e;
+      --error: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
     }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    p.subtitle { color: #666; margin-top: 0; margin-bottom: 24px; }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      text-align: center;
+      padding: 48px 20px 0;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #a78bfa, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p {
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    /* ===== Container ===== */
+    .container {
+      max-width: 680px;
+      margin: 32px auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--surface-hover);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+    .tab-btn .tab-icon { font-size: 16px; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Drop Zone ===== */
     .drop-zone {
-      border: 2px dashed #bbb;
-      border-radius: 10px;
-      padding: 40px 20px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 48px 24px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      transition: all 0.25s ease;
+      background: var(--surface);
+    }
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
     }
     .drop-zone.dragover {
-      border-color: #4f46e5;
-      background: #f5f5ff;
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      transform: scale(1.01);
     }
-    .drop-zone p { margin: 0; color: #555; }
+    .drop-zone .dz-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .drop-zone .dz-text {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .drop-zone .dz-text strong {
+      color: var(--accent-hover);
+    }
+    .drop-zone .dz-selected {
+      color: var(--success);
+      font-weight: 500;
+    }
     input[type="file"] { display: none; }
 
+    /* ===== Controls ===== */
     .controls {
       display: flex;
       gap: 16px;
       margin: 20px 0;
       flex-wrap: wrap;
     }
-    .controls label {
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    .control-group {
+      flex: 1;
+      min-width: 140px;
     }
-    select, input[type="range"] { width: 100%; }
-
-    button {
-      background: #4f46e5;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 6px;
+    .control-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .control-group select,
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+    select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-family: inherit;
       font-size: 14px;
       cursor: pointer;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b8fa3' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
     }
-    button:disabled { background: #aaa; cursor: not-allowed; }
+    select:hover, select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
 
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      outline: none;
+      margin-top: 4px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-glow);
+      transition: transform 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .quality-display {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-hover);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    /* ===== Buttons ===== */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(99, 102, 241, 0.3);
+    }
+    .btn-primary:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+    .btn-download:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.25);
+    }
+
+    /* ===== Result ===== */
     .result {
       margin-top: 28px;
       display: none;
+      animation: fadeIn 0.4s ease;
     }
+    .result.show { display: block; }
+
+    .stats-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      text-align: center;
+      flex: 1;
+      min-width: 100px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .stat-value.original { color: var(--text-muted); }
+    .stat-value.compressed { color: var(--accent-hover); }
+    .stat-value.reduction { color: var(--success); }
+
+    .stat-arrow {
+      font-size: 20px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* ===== Compare images ===== */
     .compare {
       display: flex;
       gap: 16px;
-      margin-top: 12px;
+      margin-top: 16px;
     }
-    .compare figure { flex: 1; margin: 0; text-align: center; }
+    .compare figure {
+      flex: 1;
+      margin: 0;
+      text-align: center;
+    }
     .compare img {
       max-width: 100%;
-      border-radius: 8px;
-      border: 1px solid #eee;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
     }
-    .compare figcaption { font-size: 13px; color: #666; margin-top: 6px; }
+    .compare figcaption {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
 
-    .stats {
-      margin-top: 12px;
-      background: #f7f7f9;
-      border-radius: 8px;
-      padding: 12px 16px;
+    /* ===== Error ===== */
+    .error-box {
+      color: var(--error);
       font-size: 14px;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius-sm);
+      display: none;
     }
-    .error { color: #d33; margin-top: 12px; font-size: 14px; }
+    .error-box.show { display: block; }
+
+    /* ===== Spinner ===== */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 520px) {
+      .controls { flex-direction: column; }
+      .compare { flex-direction: column; }
+      .stats-row { flex-direction: column; gap: 12px; }
+      .stat-arrow { transform: rotate(90deg); }
+      .tab-btn { font-size: 12px; padding: 10px 4px; gap: 4px; }
+    }
   </style>
 </head>
 <body>
-  <h1>Nén ảnh cơ bản</h1>
-  <p class="subtitle">Chọn hoặc kéo-thả ảnh (JPEG, PNG, WebP — tối đa 10MB)</p>
 
-  <div class="drop-zone" id="dropZone">
-    <p>Kéo-thả ảnh vào đây, hoặc bấm để chọn file</p>
-    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+  <div class="header">
+    <h1>Nén File Online</h1>
+    <p>Nén ảnh, PDF và CSV nhanh chóng — xử lý ngay trên server</p>
   </div>
 
-  <div class="controls">
-    <label style="flex: 1; min-width: 140px;">
-      Chất lượng (quality): <span id="qualityValue">70</span>
-      <input type="range" id="quality" min="1" max="100" value="70" />
-    </label>
-    <label style="flex: 1; min-width: 140px;">
-      Định dạng đầu ra
-      <select id="format">
-        <option value="jpeg">JPEG</option>
-        <option value="webp">WebP</option>
-        <option value="png">PNG</option>
-      </select>
-    </label>
-  </div>
-
-  <button id="compressBtn" disabled>Nén ảnh</button>
-  <div class="error" id="errorBox"></div>
-
-  <div class="result" id="result">
-    <div class="compare">
-      <figure>
-        <img id="originalPreview" alt="Ảnh gốc" />
-        <figcaption id="originalCaption">Ảnh gốc</figcaption>
-      </figure>
-      <figure>
-        <img id="compressedPreview" alt="Ảnh đã nén" />
-        <figcaption id="compressedCaption">Ảnh đã nén</figcaption>
-      </figure>
+  <div class="container">
+    <!-- ===== TAB BAR ===== -->
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="image" role="tab" id="tab-image">
+        <span class="tab-icon">🖼️</span> Nén Ảnh
+      </button>
+      <button class="tab-btn" data-tab="pdf" role="tab" id="tab-pdf">
+        <span class="tab-icon">📄</span> Nén PDF
+      </button>
+      <button class="tab-btn" data-tab="csv" role="tab" id="tab-csv">
+        <span class="tab-icon">📊</span> Nén CSV
+      </button>
     </div>
-    <div class="stats" id="stats"></div>
-    <a id="downloadLink" download>
-      <button style="margin-top: 12px;">Tải ảnh đã nén</button>
-    </a>
+
+    <!-- ============================================ -->
+    <!-- TAB 1: Nén Ảnh                              -->
+    <!-- ============================================ -->
+    <div class="tab-panel active" id="panel-image" role="tabpanel">
+      <div class="drop-zone" id="dropImage">
+        <span class="dz-icon">🖼️</span>
+        <p class="dz-text">Kéo-thả ảnh vào đây, hoặc <strong>bấm để chọn file</strong><br/>JPEG, PNG, WebP — tối đa 10MB</p>
+        <input type="file" id="fileImage" accept="image/jpeg,image/png,image/webp" />
+      </div>
+
+      <div class="controls">
+        <div class="control-group" style="flex: 1.5;">
+          <label for="imgQuality">Chất lượng</label>
+          <div class="quality-display" id="imgQualityValue">70</div>
+          <input type="range" id="imgQuality" min="1" max="100" value="70" />
+        </div>
+        <div class="control-group">
+          <label for="imgFormat">Định dạng đầu ra</label>
+          <select id="imgFormat">
+            <option value="jpeg">JPEG</option>
+            <option value="webp">WebP</option>
+            <option value="png">PNG</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnCompressImage" disabled>Nén ảnh</button>
+      <div class="error-box" id="errorImage"></div>
+
+      <div class="result" id="resultImage">
+        <div class="stats-card">
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-label">Gốc</div>
+              <div class="stat-value original" id="imgOrigSize">-</div>
+            </div>
+            <div class="stat-arrow">→</div>
+            <div class="stat-item">
+              <div class="stat-label">Sau nén</div>
+              <div class="stat-value compressed" id="imgCompSize">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Giảm</div>
+              <div class="stat-value reduction" id="imgReduction">-</div>
+            </div>
+          </div>
+        </div>
+        <div class="compare">
+          <figure>
+            <img id="imgOrigPreview" alt="Ảnh gốc" />
+            <figcaption>Ảnh gốc</figcaption>
+          </figure>
+          <figure>
+            <img id="imgCompPreview" alt="Ảnh đã nén" />
+            <figcaption>Ảnh đã nén</figcaption>
+          </figure>
+        </div>
+        <a id="imgDownload" download>
+          <button class="btn-download">⬇️ Tải ảnh đã nén</button>
+        </a>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TAB 2: Nén PDF                              -->
+    <!-- ============================================ -->
+    <div class="tab-panel" id="panel-pdf" role="tabpanel">
+      <div class="drop-zone" id="dropPdf">
+        <span class="dz-icon">📄</span>
+        <p class="dz-text">Kéo-thả file PDF vào đây, hoặc <strong>bấm để chọn file</strong><br/>Tối đa 50MB</p>
+        <input type="file" id="filePdf" accept="application/pdf" />
+      </div>
+
+      <div class="controls">
+        <div class="control-group" style="flex: 1;">
+          <label for="pdfQuality">Mức nén</label>
+          <select id="pdfQuality">
+            <option value="screen">🔍 Nén mạnh (72 DPI — xem màn hình)</option>
+            <option value="ebook" selected>📖 Cân bằng (150 DPI — ebook)</option>
+            <option value="printer">🖨️ Chất lượng cao (300 DPI — in ấn)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnCompressPdf" disabled>Nén PDF</button>
+      <div class="error-box" id="errorPdf"></div>
+
+      <div class="result" id="resultPdf">
+        <div class="stats-card">
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-label">Gốc</div>
+              <div class="stat-value original" id="pdfOrigSize">-</div>
+            </div>
+            <div class="stat-arrow">→</div>
+            <div class="stat-item">
+              <div class="stat-label">Sau nén</div>
+              <div class="stat-value compressed" id="pdfCompSize">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Giảm</div>
+              <div class="stat-value reduction" id="pdfReduction">-</div>
+            </div>
+          </div>
+        </div>
+        <a id="pdfDownload" download>
+          <button class="btn-download">⬇️ Tải PDF đã nén</button>
+        </a>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TAB 3: Nén CSV                              -->
+    <!-- ============================================ -->
+    <div class="tab-panel" id="panel-csv" role="tabpanel">
+      <div class="drop-zone" id="dropCsv">
+        <span class="dz-icon">📊</span>
+        <p class="dz-text">Kéo-thả file CSV vào đây, hoặc <strong>bấm để chọn file</strong><br/>Tối đa 20MB</p>
+        <input type="file" id="fileCsv" accept=".csv,text/csv" />
+      </div>
+
+      <div class="controls">
+        <div class="control-group" style="flex: 1;">
+          <label for="csvFormat">Định dạng nén</label>
+          <select id="csvFormat">
+            <option value="zip">📦 ZIP (phổ biến nhất)</option>
+            <option value="gzip">🗜️ GZIP (.csv.gz)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnCompressCsv" disabled>Nén CSV</button>
+      <div class="error-box" id="errorCsv"></div>
+
+      <div class="result" id="resultCsv">
+        <div class="stats-card">
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-label">Gốc</div>
+              <div class="stat-value original" id="csvOrigSize">-</div>
+            </div>
+            <div class="stat-arrow">→</div>
+            <div class="stat-item">
+              <div class="stat-label">Sau nén</div>
+              <div class="stat-value compressed" id="csvCompSize">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Giảm</div>
+              <div class="stat-value reduction" id="csvReduction">-</div>
+            </div>
+          </div>
+        </div>
+        <a id="csvDownload" download>
+          <button class="btn-download">⬇️ Tải file đã nén</button>
+        </a>
+      </div>
+    </div>
   </div>
 
   <script>
-    const dropZone = document.getElementById("dropZone");
-    const fileInput = document.getElementById("fileInput");
-    const compressBtn = document.getElementById("compressBtn");
-    const qualityInput = document.getElementById("quality");
-    const qualityValue = document.getElementById("qualityValue");
-    const formatSelect = document.getElementById("format");
-    const errorBox = document.getElementById("errorBox");
-    const resultBox = document.getElementById("result");
-
-    let selectedFile = null;
-
-    qualityInput.addEventListener("input", () => {
-      qualityValue.textContent = qualityInput.value;
-    });
-
-    dropZone.addEventListener("click", () => fileInput.click());
-
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("dragover");
-    });
-    dropZone.addEventListener("dragleave", () => {
-      dropZone.classList.remove("dragover");
-    });
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("dragover");
-      if (e.dataTransfer.files.length) {
-        handleFile(e.dataTransfer.files[0]);
-      }
-    });
-
-    fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length) handleFile(e.target.files[0]);
-    });
-
-    function handleFile(file) {
-      errorBox.textContent = "";
-      selectedFile = file;
-      compressBtn.disabled = false;
-      dropZone.querySelector("p").textContent = `Đã chọn: ${file.name}`;
-    }
-
+    // ===== Helpers =====
     function formatBytes(bytes) {
       if (bytes < 1024) return bytes + " B";
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
       return (bytes / (1024 * 1024)).toFixed(2) + " MB";
     }
 
-    compressBtn.addEventListener("click", async () => {
-      if (!selectedFile) return;
-      errorBox.textContent = "";
-      compressBtn.disabled = true;
-      compressBtn.textContent = "Đang xử lý...";
+    function showError(boxEl, msg) {
+      boxEl.textContent = msg;
+      boxEl.classList.add("show");
+    }
+    function hideError(boxEl) {
+      boxEl.textContent = "";
+      boxEl.classList.remove("show");
+    }
 
-      const formData = new FormData();
-      formData.append("image", selectedFile);
-      formData.append("quality", qualityInput.value);
-      formData.append("format", formatSelect.value);
+    // ===== Tab switching =====
+    const tabBtns = document.querySelectorAll(".tab-btn");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    tabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        tabBtns.forEach((b) => b.classList.remove("active"));
+        tabPanels.forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    // ===== Generic Drop Zone setup =====
+    function setupDropZone(zoneEl, inputEl, acceptCheck, onFile) {
+      zoneEl.addEventListener("click", () => inputEl.click());
+
+      zoneEl.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        zoneEl.classList.add("dragover");
+      });
+      zoneEl.addEventListener("dragleave", () => zoneEl.classList.remove("dragover"));
+      zoneEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        zoneEl.classList.remove("dragover");
+        if (e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+      });
+
+      inputEl.addEventListener("change", (e) => {
+        if (e.target.files.length) onFile(e.target.files[0]);
+      });
+    }
+
+    // ===========================================================
+    // TAB 1: NÉN ẢNH
+    // ===========================================================
+    let selectedImage = null;
+    const dropImage = document.getElementById("dropImage");
+    const fileImage = document.getElementById("fileImage");
+    const btnImage = document.getElementById("btnCompressImage");
+    const errorImage = document.getElementById("errorImage");
+    const resultImage = document.getElementById("resultImage");
+    const imgQuality = document.getElementById("imgQuality");
+    const imgQualityValue = document.getElementById("imgQualityValue");
+
+    imgQuality.addEventListener("input", () => {
+      imgQualityValue.textContent = imgQuality.value;
+    });
+
+    setupDropZone(dropImage, fileImage, null, (file) => {
+      hideError(errorImage);
+      selectedImage = file;
+      btnImage.disabled = false;
+      dropImage.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+    });
+
+    btnImage.addEventListener("click", async () => {
+      if (!selectedImage) return;
+      hideError(errorImage);
+      btnImage.disabled = true;
+      btnImage.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+
+      const fd = new FormData();
+      fd.append("image", selectedImage);
+      fd.append("quality", imgQuality.value);
+      fd.append("format", document.getElementById("imgFormat").value);
 
       try {
-        const res = await fetch("/api/compress", {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch("/api/compress", { method: "POST", body: fd });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Nén ảnh thất bại.");
 
-        if (!res.ok) {
-          throw new Error(data.error || "Nén ảnh thất bại.");
-        }
-
-        // Hiển thị kết quả
-        document.getElementById("originalPreview").src = URL.createObjectURL(selectedFile);
-        document.getElementById("originalCaption").textContent = `Ảnh gốc — ${formatBytes(data.originalSize)}`;
-        document.getElementById("compressedPreview").src = data.url;
-        document.getElementById("compressedCaption").textContent = `Đã nén — ${formatBytes(data.compressedSize)}`;
-        document.getElementById("stats").textContent =
-          `Giảm ${data.reductionPercent}% dung lượng (${formatBytes(data.originalSize)} → ${formatBytes(data.compressedSize)})`;
-        document.getElementById("downloadLink").href = data.url;
-
-        resultBox.style.display = "block";
+        document.getElementById("imgOrigSize").textContent = formatBytes(data.originalSize);
+        document.getElementById("imgCompSize").textContent = formatBytes(data.compressedSize);
+        document.getElementById("imgReduction").textContent = `${data.reductionPercent}%`;
+        document.getElementById("imgOrigPreview").src = URL.createObjectURL(selectedImage);
+        document.getElementById("imgCompPreview").src = data.url;
+        document.getElementById("imgDownload").href = data.url;
+        resultImage.classList.add("show");
       } catch (err) {
-        errorBox.textContent = err.message;
+        showError(errorImage, err.message);
       } finally {
-        compressBtn.disabled = false;
-        compressBtn.textContent = "Nén ảnh";
+        btnImage.disabled = false;
+        btnImage.innerHTML = "Nén ảnh";
+      }
+    });
+
+    // ===========================================================
+    // TAB 2: NÉN PDF
+    // ===========================================================
+    let selectedPdf = null;
+    const dropPdf = document.getElementById("dropPdf");
+    const filePdf = document.getElementById("filePdf");
+    const btnPdf = document.getElementById("btnCompressPdf");
+    const errorPdf = document.getElementById("errorPdf");
+    const resultPdf = document.getElementById("resultPdf");
+
+    setupDropZone(dropPdf, filePdf, null, (file) => {
+      hideError(errorPdf);
+      selectedPdf = file;
+      btnPdf.disabled = false;
+      dropPdf.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+    });
+
+    btnPdf.addEventListener("click", async () => {
+      if (!selectedPdf) return;
+      hideError(errorPdf);
+      btnPdf.disabled = true;
+      btnPdf.innerHTML = '<span class="spinner"></span> Đang nén PDF...';
+
+      const fd = new FormData();
+      fd.append("pdf", selectedPdf);
+      fd.append("quality", document.getElementById("pdfQuality").value);
+
+      try {
+        const res = await fetch("/api/compress-pdf", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Nén PDF thất bại.");
+
+        document.getElementById("pdfOrigSize").textContent = formatBytes(data.originalSize);
+        document.getElementById("pdfCompSize").textContent = formatBytes(data.compressedSize);
+        document.getElementById("pdfReduction").textContent = `${data.reductionPercent}%`;
+        document.getElementById("pdfDownload").href = data.url;
+        resultPdf.classList.add("show");
+      } catch (err) {
+        showError(errorPdf, err.message);
+      } finally {
+        btnPdf.disabled = false;
+        btnPdf.innerHTML = "Nén PDF";
+      }
+    });
+
+    // ===========================================================
+    // TAB 3: NÉN CSV
+    // ===========================================================
+    let selectedCsv = null;
+    const dropCsv = document.getElementById("dropCsv");
+    const fileCsv = document.getElementById("fileCsv");
+    const btnCsv = document.getElementById("btnCompressCsv");
+    const errorCsv = document.getElementById("errorCsv");
+    const resultCsv = document.getElementById("resultCsv");
+
+    setupDropZone(dropCsv, fileCsv, null, (file) => {
+      hideError(errorCsv);
+      selectedCsv = file;
+      btnCsv.disabled = false;
+      dropCsv.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+    });
+
+    btnCsv.addEventListener("click", async () => {
+      if (!selectedCsv) return;
+      hideError(errorCsv);
+      btnCsv.disabled = true;
+      btnCsv.innerHTML = '<span class="spinner"></span> Đang nén CSV...';
+
+      const fd = new FormData();
+      fd.append("csv", selectedCsv);
+      fd.append("format", document.getElementById("csvFormat").value);
+
+      try {
+        const res = await fetch("/api/compress-csv", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Nén CSV thất bại.");
+
+        document.getElementById("csvOrigSize").textContent = formatBytes(data.originalSize);
+        document.getElementById("csvCompSize").textContent = formatBytes(data.compressedSize);
+        document.getElementById("csvReduction").textContent = `${data.reductionPercent}%`;
+
+        const downloadLink = document.getElementById("csvDownload");
+        downloadLink.href = data.url;
+        if (data.downloadName) downloadLink.download = data.downloadName;
+
+        resultCsv.classList.add("show");
+      } catch (err) {
+        showError(errorCsv, err.message);
+      } finally {
+        btnCsv.disabled = false;
+        btnCsv.innerHTML = "Nén CSV";
       }
     });
   </script>
