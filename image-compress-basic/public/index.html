@@ -144,6 +144,22 @@
       font-weight: 500;
     }
     input[type="file"] { display: none; }
+    input[type="number"] {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:hover, input[type="number"]:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    input[type="number"]::placeholder { color: var(--text-muted); }
 
     /* ===== Controls ===== */
     .controls {
@@ -419,6 +435,10 @@
             <option value="png">PNG</option>
           </select>
         </div>
+        <div class="control-group">
+          <label for="imgWidth">Chiều rộng (px)</label>
+          <input type="number" id="imgWidth" placeholder="Giữ nguyên" min="1" max="10000" />
+        </div>
       </div>
 
       <button class="btn-primary" id="btnCompressImage" disabled>Nén ảnh</button>
@@ -571,6 +591,23 @@
       boxEl.classList.remove("show");
     }
 
+    // Hiển thị tên file đã chọn (an toàn, không dùng innerHTML)
+    function setSelectedFile(zoneEl, fileName) {
+      const dzText = zoneEl.querySelector(".dz-text");
+      dzText.textContent = '';
+      const span = document.createElement('span');
+      span.className = 'dz-selected';
+      span.textContent = '✅ ' + fileName;
+      dzText.appendChild(span);
+    }
+
+    // Hiển thị % giảm, xử lý trường hợp file nén lớn hơn gốc
+    function formatReduction(percent) {
+      const val = parseFloat(percent);
+      if (val < 0) return `+${Math.abs(val).toFixed(1)}% ⚠️`;
+      return `${val}%`;
+    }
+
     // ===== Tab switching =====
     const tabBtns = document.querySelectorAll(".tab-btn");
     const tabPanels = document.querySelectorAll(".tab-panel");
@@ -624,7 +661,7 @@
       hideError(errorImage);
       selectedImage = file;
       btnImage.disabled = false;
-      dropImage.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+      setSelectedFile(dropImage, file.name);
     });
 
     btnImage.addEventListener("click", async () => {
@@ -637,6 +674,8 @@
       fd.append("image", selectedImage);
       fd.append("quality", imgQuality.value);
       fd.append("format", document.getElementById("imgFormat").value);
+      const widthVal = document.getElementById("imgWidth").value;
+      if (widthVal) fd.append("width", widthVal);
 
       try {
         const res = await fetch("/api/compress", { method: "POST", body: fd });
@@ -645,7 +684,7 @@
 
         document.getElementById("imgOrigSize").textContent = formatBytes(data.originalSize);
         document.getElementById("imgCompSize").textContent = formatBytes(data.compressedSize);
-        document.getElementById("imgReduction").textContent = `${data.reductionPercent}%`;
+        document.getElementById("imgReduction").textContent = formatReduction(data.reductionPercent);
         document.getElementById("imgOrigPreview").src = URL.createObjectURL(selectedImage);
         document.getElementById("imgCompPreview").src = data.url;
         document.getElementById("imgDownload").href = data.url;
@@ -672,7 +711,7 @@
       hideError(errorPdf);
       selectedPdf = file;
       btnPdf.disabled = false;
-      dropPdf.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+      setSelectedFile(dropPdf, file.name);
     });
 
     btnPdf.addEventListener("click", async () => {
@@ -692,7 +731,7 @@
 
         document.getElementById("pdfOrigSize").textContent = formatBytes(data.originalSize);
         document.getElementById("pdfCompSize").textContent = formatBytes(data.compressedSize);
-        document.getElementById("pdfReduction").textContent = `${data.reductionPercent}%`;
+        document.getElementById("pdfReduction").textContent = formatReduction(data.reductionPercent);
         document.getElementById("pdfDownload").href = data.url;
         resultPdf.classList.add("show");
       } catch (err) {
@@ -717,7 +756,7 @@
       hideError(errorCsv);
       selectedCsv = file;
       btnCsv.disabled = false;
-      dropCsv.querySelector(".dz-text").innerHTML = `<span class="dz-selected">✅ ${file.name}</span>`;
+      setSelectedFile(dropCsv, file.name);
     });
 
     btnCsv.addEventListener("click", async () => {
@@ -737,7 +776,7 @@
 
         document.getElementById("csvOrigSize").textContent = formatBytes(data.originalSize);
         document.getElementById("csvCompSize").textContent = formatBytes(data.compressedSize);
-        document.getElementById("csvReduction").textContent = `${data.reductionPercent}%`;
+        document.getElementById("csvReduction").textContent = formatReduction(data.reductionPercent);
 
         const downloadLink = document.getElementById("csvDownload");
         downloadLink.href = data.url;

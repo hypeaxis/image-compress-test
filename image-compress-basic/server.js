@@ -18,6 +18,34 @@ const OUTPUT_DIR = path.join(__dirname, "public", "output");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
+// ----- Dọn dẹp file output cũ (mỗi 10 phút, xóa file > 30 phút) -----
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const MAX_FILE_AGE_MS = 30 * 60 * 1000;
+
+function cleanupOldFiles() {
+  try {
+    const files = fs.readdirSync(OUTPUT_DIR);
+    const now = Date.now();
+    let count = 0;
+    files.forEach((file) => {
+      if (file === ".gitkeep") return;
+      const filePath = path.join(OUTPUT_DIR, file);
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > MAX_FILE_AGE_MS) {
+        fs.unlinkSync(filePath);
+        count++;
+      }
+    });
+    if (count > 0) console.log(`[Cleanup] Đã xóa ${count} file cũ.`);
+  } catch (err) {
+    console.error("[Cleanup] Lỗi:", err.message);
+  }
+}
+
+setInterval(cleanupOldFiles, CLEANUP_INTERVAL_MS);
+// Chạy 1 lần khi khởi động
+cleanupOldFiles();
+
 // ----- Cấu hình Multer: Ảnh -----
 const uploadImage = multer({
   storage: multer.memoryStorage(),
@@ -297,10 +325,16 @@ app.post("/api/compress-csv", uploadCsv.single("csv"), async (req, res) => {
 
 // Xử lý lỗi từ Multer (VD: file quá lớn, sai định dạng)
 app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError || err) {
+  // Lỗi Multer: file quá lớn, vượt limit
+  if (err instanceof multer.MulterError) {
     return res.status(400).json({ error: err.message });
   }
-  next();
+  // Lỗi từ fileFilter: sai định dạng file
+  if (err && err.message) {
+    console.error("Request error:", err.message);
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
 });
 
 app.listen(PORT, () => {
